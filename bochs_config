@@ -1,11 +1,11 @@
 megs:           128
-romimage:       file=/usr/share/bochs/BIOS-bochs-latest, address=0xFFFe0000
-vgaromimage:    file=/usr/share/bochs/VGABIOS-lgpl-latest
+romimage:       file=/usr/local/share/bochs/BIOS-bochs-latest, address=0xFFFe0000
+vgaromimage:    file=/usr/local/share/bochs/VGABIOS-lgpl-latest
 boot: disk
 floppya: 1_44=boot_disk_image.img, status=inserted
 ata0: enabled=1, ioaddr1=0x1f0, ioaddr2=0x3f0, irq=14
-ata0-master: type=disk, path=./build/disk.img, mode=flat, cylinders=1, heads=2, spt=1
+ata0-master: type=disk, path=./build/disk.img, mode=flat, cylinders=1, heads=2, spt=18
 log: bochslog.txt
 mouse:      enabled=0
-display_library: sdl, options="gui_debug"
+display_library: x, options="gui_debug"
 

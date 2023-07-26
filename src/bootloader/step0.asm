@@ -8,8 +8,8 @@
 %define ENDL                    0x0D,           0x0A
 %define BOOT_SIGNATURE          0xAA55
 %define KERNEL_BIN_FILENAME     "KERNEL  BIN"
-%define FAT_BYTES_PER_SECTOR    0x200
-%define FAT_TOTAL_OF_SECTORS    2000
+%define FAT_BYTES_PER_SECTOR    0x200                   ; 512
+%define FAT_TOTAL_OF_SECTORS    2880
 %define EBR_VOLUME_LABEL        "PINGPONG OS"
 %define FAT_FILENAME_SIZE       11
 %define DIRECTORY_ENTRY_SIZE    32
@@ -30,8 +30,8 @@ bdb_sectors_per_cluster:    db  1                       ; 1 Sector Per Cluster
 bdb_reserved_sectors:       dw  1                       ; 1 Reserved Sector
 bdb_fat_count:              db  2                       ; Common Value
 bdb_dir_entries_count:      dw  0xE0                    ; Number of Dir Entries
-bdb_total_sectors:          dw  FAT_TOTAL_OF_SECTORS    ; 512 * 2000 = 2MiB
-bdb_media_descriptor_type:  db  0xF8                    ; F8 = Hard Disk
+bdb_total_sectors:          dw  FAT_TOTAL_OF_SECTORS    ; 512 * 2880 = 1.44MB
+bdb_media_descriptor_type:  db  0x80                    ; F0 = 3.5" Floppy Disk
 bdb_sectors_per_fat:        dw  9                       ; 9 Sectors/Fat
 bdb_sectors_per_track:      dw  18                      ; Sectors Per Fat * Head Counts
 bdb_heads:                  dw  2                       ; Number of heads
@@ -39,7 +39,7 @@ bdb_hidden_sectors:         dd  0                       ; Hidden Sectors Count
 bdb_large_sector_count:     dd  0                       ; Number of Large Sectors
 
 ; Extended Boot Record (EBR)
-ebr_driver_number:          db  0x80                    ; HDD
+ebr_driver_number:          db  0x00                    ; Floppy
                             db  0                       ; Reserved Byte
 ebr_signature:              db  0x28                    ; Either 0x28 or 0x29
 ebr_volume_id:              db  0x12, 0x34, 0x56, 0x78  ; Serial Number
@@ -303,7 +303,8 @@ main:
 
     mov     ax,     [kernel_cluster]            ; Gets the Kernel Cluster
     sub     ax,     2                           ; Subtract 2 from the Kernel Cluster
-    mul     word    [bdb_sectors_per_cluster]   ; Multiply the result by Sectors Per Cluster
+    mul     word    [bdb_sectors_per_cluster]   ; Multiply the result by \
+                                                ;       Sectors Per Cluster
     add     ax,     [bdb_reserved_sectors]      ; Add RESERVED SECTORS to the result
 
     ; Calculate the size of the root directory in sectors
@@ -312,7 +313,8 @@ main:
     add     ax,     [bdb_bytes]
     ;dec     ax
     div     word    [bdb_bytes]
-    add     ax,     [bdb_reserved_sectors]      ; Add size of the root directory in sectors
+    add     ax,     [bdb_reserved_sectors]      ; Add size of the root \
+                                                ;   directory in sectors
     add     ax,     [bdb_sectors_per_fat]       ; Add (Fat Count * Sectors per fat)
 
     mov     cl,     1
