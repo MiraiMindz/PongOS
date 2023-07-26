@@ -1,3 +1,4 @@
+
 ; This is the first step of the booting process, it's limited to the first
 ; sector of the disk, (512 bytes), so here I will need to make the CPU load
 ; the sub-sequential sectors in order to have more space to work, essentially
@@ -13,7 +14,7 @@
 %define EBR_VOLUME_LABEL        "PINGPONG OS"
 %define FAT_FILENAME_SIZE       11
 %define DIRECTORY_ENTRY_SIZE    32
-%define KERNEL_LOAD_SEGMENT     0x2600
+%define KERNEL_LOAD_SEGMENT     0x2000
 %define KERNEL_LOAD_OFFSET      0
 
 ; NASM Directives
@@ -48,8 +49,9 @@ ebr_system_id:              db  'FAT12   '              ; 8 Bytes
 
 ; "Variables" Section [00] {{{
 ; MESSAGES
-msg_disk_error:                 db      "DSK ERR",      ENDL,   0
-msg_kernel_was_not_found_error: db      "KRN ERR",      ENDL,   0
+msg_loading:                    db      "Loading",  ENDL,   0
+msg_disk_error:                 db      "Er0",      ENDL,   0
+msg_kernel_was_not_found_error: db      "Er1",      ENDL,   0
 ; OTHER VARIABLES
 kernel_bin_file_name:           db  KERNEL_BIN_FILENAME
 kernel_cluster:                 dw  0
@@ -77,6 +79,7 @@ puts:
             ;   asmdude.github.io/x86doc/html/LODS_LODSB_LODSW_LODSD_LODSQ.html
     or al, al   ; Sets the ZeroFlag if AL is Zero.
     jz  .chdone
+    sti             ; Enables interrupts
     mov ah, 0x0E    ; Set the Interrupt mode to: "Write Character in TTY Mode"
     mov bh, 0       ; Set the PAGE number (text mode) to 0  
     int 0x10        ; 
@@ -84,6 +87,7 @@ puts:
     jmp .chloop
 
 .chdone:
+    cli     ; Disables BIOS Interupts again
     ; Restores the Registers
     pop ax
     pop si
@@ -189,11 +193,8 @@ disk_reset:
     ret
 
 ; Start of program
-main:
-    ; Enables video mode
-    mov ah, 0x00        ; Function 00h - Set Video Mode
-    mov al, 0x13        ; Video Mode 13h (320x200, 256 colors)
-    int 0x10            ; BIOS video services interrupt
+main: 
+    cli                 ; Disables interrupts
     
     ; Set Registers to default values [02] {{{
     
@@ -210,11 +211,13 @@ main:
     push es
     push word .after
 
-.after: 
+.after:
+    mov     si, msg_loading
+    call    puts
+
     ; Reads the Driver Parameters using the BIOS
-    sti
     push    es
-    mov     ah, 0x08
+    mov     ah, 0x8
     int     0x13
     jc      disk_error
     pop     es
@@ -284,7 +287,7 @@ main:
     
     ; Checks if kernel is greater than 64KB
     mov     ax, [di + 28]   ; Gets the FILE SIZE
-    cmp     ax, 0xFFFF      ; 65535 Bytes [MAX 16bit Register Value]
+    cmp     ax, 0x10000     ; 65536 Bytes
     jbe     .preloads_kernel
     inc     word [bdb_total_sectors]
 
@@ -310,7 +313,7 @@ main:
     mov     ax,     [bdb_dir_entries_count]
     mul     word    [DIRECTORY_ENTRY_SIZE]
     add     ax,     [bdb_bytes]
-    ;dec     ax
+    dec     ax
     div     word    [bdb_bytes]
     add     ax,     [bdb_reserved_sectors]      ; Add size of the root directory in sectors
     add     ax,     [bdb_sectors_per_fat]       ; Add (Fat Count * Sectors per fat)

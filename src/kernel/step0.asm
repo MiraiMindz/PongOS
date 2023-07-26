@@ -4,7 +4,7 @@
 ; creating a multi-step boot process similar to how GRUB does it.
 
 ; MACROS
-%define MEMOFFSET 0x7C00
+%define MEMOFFSET 0x0
 %define ENDL 0x0D, 0x0A
 
 ; NASM Directives
@@ -13,7 +13,7 @@ bits        16          ; Tells the assembler to emit 16 bits compatible code
 
 ; "Variables" Section [00] {{{
 
-msg: db "Hello World", ENDL, 0
+msg: db "Hello From the KERNEL", ENDL, 0
 ;MEMOFFSET   dw 0x7C00
 
 ; [00] }}}
@@ -56,21 +56,6 @@ puts:
 
 ; Start of program
 main:
-    cli                 ; Disables interrupts
-    
-    ; Set Registers to default values [02] {{{
-    
-    ; Data Registers
-    xor ax, ax          ; set AX to Zero
-    mov ds, ax
-    mov es, ax
-
-    ; Stack Registers
-    mov ss, ax
-    mov sp, MEMOFFSET
-
-    ; [02] }}}
-
     mov si, msg
     call puts
 
@@ -79,9 +64,4 @@ main:
 .halt:
     jmp     .halt       ; Fallback halting, in case the CPU continues executing
 
-padsec:
-    times   510-($-$$)  db  0   ; Fills the sectior with zeros
-    dw      0xAA55              ; Declares the boot signature
-
-; qemu-system-i386 -drive file=./step0.bin,format=raw,index=0,media=disk
 
